@@ -1,9 +1,11 @@
 # %%
 import pandas as pd
 import numpy as np
+pd.options.display.max_rows = 500
 all_companies_df = pd.read_csv("All_Campenes.csv")
 our_companies_df = pd.read_csv("our_companies.csv")
 all_assciation_df = pd.read_csv("all_assciation.csv")
+companies_in_liquidation_df = pd.read_csv("Companies_in_liquidation.csv")
 VALID_FREFIX = ["5"+str(i) for i in range(10)]
 
 
@@ -36,6 +38,15 @@ our_companies_df.columns = [
     "Business_Number",
     "Account_Number",
     "Account_Name"]
+all_assciation_df.rename(columns={
+    "שם עמותה בעברית": "Account_Name",
+    "מספר עמותה": "Business_Number"
+    }, inplace=True)
+companies_in_liquidation_df.rename(columns={
+    "שם חברה":"Account_Name",
+    "מספר חברה":"Business_Number"
+
+    },inplace=True)
 result = pd.DataFrame(columns=["Supplier_Id",
                                "Business_Number",
                                "Account_Number",
@@ -46,13 +57,10 @@ all_companies_df["Business_Number"] = all_companies_df["Business_Number"].astype
     'int64')
 our_companies_df["Business_Number"] = our_companies_df["Business_Number"].astype(
     'int64')
-all_assciation_df.rename(columns={
-    "שם עמותה בעברית": "Account_Name",
-    "מספר עמותה": "Business_Number"
-    }, inplace=True)
+
 companies_and_assciation_df = pd.concat(
     [all_companies_df, all_assciation_df], ignore_index=True)
-companies_and_assciation_df.drop(labels=['account_name_en', 'type', 'status',
+companies_and_assciation_df = companies_and_assciation_df.drop(labels=['account_name_en', 'type', 'status',
        'description', 'campeny_gool', 'date_created', 'is_GOV_campeny',
        'limitations', 'breaks_the_rules', 'last_year', 'city', 'street_name',
        'home_number', 'pin', 'mailbox', 'country', 'person_name', 'substatus',
@@ -91,9 +99,17 @@ for ind_row in range(wrong_Business_Number.shape[0]):
         wrong_Business_Number.loc[ind_row]["why"] = "short_num"
     if str(business_number)[:2] not in VALID_FREFIX:
         wrong_Business_Number.loc[ind_row]["why"] = "frefix_not_valid"
+    if business_number in companies_in_liquidation_df["Business_Number"].unique():
+        wrong_Business_Number.loc[ind_row]["why"] = "companie_in_liquidation"
 
 
+
+#%%
+from IPython.display import display
+def fing_by_name(name):
+    mask = companies_and_assciation_df["Account_Name"].str.contains(name, na=False, regex=False)
+    indexes = [i for i in mask.index if mask[i]]
+    # to_print = companies_and_assciation_df.loc[indexes]
+    display(companies_and_assciation_df.loc[indexes])
+    # companies_and_assciation_df.style
 # %%
-result.head()
-# %%
-result.to_csv("out.csv")
